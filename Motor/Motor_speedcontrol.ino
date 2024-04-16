@@ -1,18 +1,25 @@
 #include <Servo.h>
 
-Servo escLeft;  // 左侧电机
-Servo escRight; // 右侧电机
-const int escLeftPin = 9;  // 左侧电机控制引脚
-const int escRightPin = 10; // 右侧电机控制引脚
+Servo escLeft;  // Left motor
+Servo escRight; // Right motor
 
-int currentSpeedLeft = 1500; // 当前左侧电机速度，初始设为中立点
-int currentSpeedRight = 1500; // 当前右侧电机速度，初始设为中立点
-int targetSpeedLeft = 1500; // 目标左侧电机速度
-int targetSpeedRight = 1500; // 目标右侧电机速度
+volatile long encoderCountLeft = 0; // Left Encoder Count
+volatile long encoderCountRight = 0; // Right Encoder Count
 
-const int maxSpeed = 2000; // 最大速度值
-const int minSpeed = 1000; // 最小速度值
-const int speedStep = 10; // 速度改变的步长
+// Attached Pins
+const int encoderPinLeft = 7; // Left encoder pin
+const int encoderPinRight = 8; // Right encoder pin
+const int escLeftPin = 9;  // Left motor control pin
+const int escRightPin = 10; // Right motor control pin
+
+int currentSpeedLeft = 1500; // Current left motor speed, initially set to neutral point
+int currentSpeedRight = 1500; // Current right motor speed, initially set to neutral point
+int targetSpeedLeft = 1500; // Motor speed on the left side of the target
+int targetSpeedRight = 1500; // Target right motor speed
+
+const int maxSpeed = 2500; // Maximum speed value
+const int minSpeed = 500; // Minimum speed value
+const int speedStep = 10; // Steps of speed change
 
 void setup() {
   escLeft.attach(escLeftPin);
@@ -21,10 +28,14 @@ void setup() {
   escLeft.writeMicroseconds(currentSpeedLeft);
   escRight.writeMicroseconds(currentSpeedRight);
   delay(2000);
+  pinMode(encoderPinLeft, INPUT);
+  pinMode(encoderPinRight, INPUT);
+  attachInterrupt(digitalPinToInterrupt(encoderPinLeft), encoderLeftISR, RISING);
+  attachInterrupt(digitalPinToInterrupt(encoderPinRight), encoderRightISR, RISING);
 }
 
 void updateSpeed() {
-  // 更新左侧电机速度
+  // Update left motor speed
   if (currentSpeedLeft < targetSpeedLeft) {
     currentSpeedLeft += speedStep;
     if (currentSpeedLeft > targetSpeedLeft) {
@@ -38,7 +49,7 @@ void updateSpeed() {
   }
   escLeft.writeMicroseconds(currentSpeedLeft);
 
-  // 更新右侧电机速度
+  // Update right motor speed
   if (currentSpeedRight < targetSpeedRight) {
     currentSpeedRight += speedStep;
     if (currentSpeedRight > targetSpeedRight) {
@@ -57,7 +68,7 @@ void loop() {
   if (Serial.available() > 0) {
     String command = Serial.readStringUntil('\n');
 
-    // 根据指令调整目标速度
+    // Adjustment of target speed on command
     if (command == "speed L +") {
       targetSpeedLeft += 100;
     } else if (command == "speed L -") {
@@ -66,10 +77,20 @@ void loop() {
       targetSpeedRight += 100;
     } else if (command == "speed R -") {
       targetSpeedRight -= 100;
+    } else if (command == "speed max") {
+      targetSpeedLeft = maxSpeed;
+      targetSpeedRight = maxSpeed;
     } else if (command == "speed max L") {
       targetSpeedLeft = maxSpeed;
     } else if (command == "speed max R") {
       targetSpeedRight = maxSpeed;
+    } else if (command == "speed min L") {
+      targetSpeedLeft = minSpeed;
+    } else if (command == "speed min R") {
+      targetSpeedRight = minSpeed;
+    } else if (command == "speed min") {
+      targetSpeedLeft = minSpeed;
+      targetSpeedRight = minSpeed;
     } else if (command == "stop") {
       targetSpeedLeft = 1500;
       targetSpeedRight = 1500;
@@ -79,6 +100,17 @@ void loop() {
     targetSpeedRight = constrain(targetSpeedRight, minSpeed, maxSpeed);
   }
 
-  updateSpeed(); // 更新速度
-  delay(20); // 稍微延迟以平滑速度变化
+  updateSpeed(); // Update speed
+  delay(20); // Slight delay to smooth out speed changes
 }
+
+// Interrupt service routine for the left encoder
+void encoderLeftISR() {
+  encoderCountLeft++;
+}
+
+// Interrupt service routine for the right encoder
+void encoderRightISR() {
+  encoderCountRight++;
+}
+
