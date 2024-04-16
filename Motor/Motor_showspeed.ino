@@ -1,149 +1,117 @@
-#include <Arduino.h>
+#include <PID_v1.h>
 
-// Define pins
-const float encoderPinA_Left = 2;
-const float encoderPinA_Right = 3;
-const float encoderPinB_Left = 4;
-const float encoderPinB_Right = 5;
-const int motorPin_Left = 9;
-const int motorPin_Right = 10;
+// Encoder pins
+const int leftEncoderPinA = 5;
+const int leftEncoderPinB = 6;
+const int rightEncoderPinA = 7;
+const int rightEncoderPinB = 8;
 
-// Encoder count
-volatile long encoderCount_Left = 0;
-volatile long encoderCount_Right = 0;
+// Motor control pins
+const int leftMotorPin = 9;
+const int rightMotorPin = 10;
 
-// Last encoder count
-long lastEncoderCount_Left = 0;
-long lastEncoderCount_Right = 0;
+// Constants for speed calculation
+const float wheelDiameter = 0.25; // in meters
+const int encoderCountsPerRevolution = 1024;
 
-// Time of last measurement
-unsigned long lastTime = 0;
+// Encoder counts
+volatile long leftEncoderCount = 0;
+volatile long rightEncoderCount = 0;
 
-// Tyre circumference in metres
-const float wheelCircumference = 0.25 * PI; // diameter converted to metres
+// PID variables
+double Setpoint, Input, Output;
 
-// Encoder resolution
-const float encoderResolution = 1024.0;
+// PID parameters
+double Kp = 2.0, Ki = 5.0, Kd = 1.0;
 
-// Target distance and current distance
-float targetDistance = 0;
-float currentDistance = 0;
-
-// Motor speed control
-const int maxMotorSpeed = 255; // Maximum PWM value
-const int motorSpeedStep = 10; // speed step
-
-// PWM value for motor
-const int motorSpeedForward = 128; // forward speed 
-const int motorSpeedBackward = 128; // backward speed
-const int motorStop = 0; // stop
+// PID controller
+PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
 void setup() {
+  // Initialize serial communication
   Serial.begin(9600);
 
-  // set pin mode
-  pinMode(encoderPinA_Left, INPUT);
-  pinMode(encoderPinB_Left, INPUT);
-  pinMode(encoderPinA_Right, INPUT);
-  pinMode(encoderPinB_Right, INPUT);
-  pinMode(motorPin_Left, OUTPUT);
-  pinMode(motorPin_Right, OUTPUT);
+  // Setup encoder pins
+  pinMode(leftEncoderPinA, INPUT);
+  pinMode(leftEncoderPinB, INPUT);
+  pinMode(rightEncoderPinA, INPUT);
+  pinMode(rightEncoderPinB, INPUT);
 
-  // setting interrupts for pins
-  attachInterrupt(digitalPinToInterrupt(encoderPinA_Left), leftEncoderISR, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(encoderPinA_Right), rightEncoderISR, CHANGE);
+  // Attach interrupt for encoders
+  attachInterrupt(digitalPinToInterrupt(leftEncoderPinA), leftEncoderISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(rightEncoderPinA), rightEncoderISR, CHANGE);
+
+  // Initialize PID controller
+  Setpoint = 0; // Set desired speed
+  myPID.SetMode(AUTOMATIC);
+
+  // Setup motor control pins
+  pinMode(leftMotorPin, OUTPUT);
+  pinMode(rightMotorPin, OUTPUT);
 }
 
 void loop() {
-  if (Serial.available() > 0) {
-    targetDistance = Serial.parseFloat(); // Read the target distance
-    moveRobotToDistance(targetDistance);  // Controlling robot movement
-  }
+  // Calculate speed and direction
+  calculateDirection();
 
-  // Calculate current distance
-  currentDistance = calculateDistance(encoderCount_Left, encoderCount_Right);
+  // Update PID controller
+  Input = calculateSpeed();
+  myPID.Compute();
 
-  // Displays speed and direction
-  displaySpeedAndDirection();
+  // Adjust motor speed based on PID output
+  analogWrite(leftMotorPin, Output);
+  analogWrite(rightMotorPin, Output);
+
+  // Print speed and direction to serial monitor
+  Serial.print("Speed: ");
+  Serial.print(Input);
+  Serial.print(" m/s, Direction: ");
+  Serial.println((Output > 0) ? "+" : (Output < 0) ? "-" : "=");
+
+  // Delay for stability
+  delay(100);
 }
 
+// Encoder ISR for left encoder
 void leftEncoderISR() {
-  if (digitalRead(encoderPinB_Left) == digitalRead(encoderPinA_Left)) {
-    encoderCount_Left--;
+  // Increment or decrement encoder count based on direction
+  if (digitalRead(leftEncoderPinB) == digitalRead(leftEncoderPinA)) {
+    leftEncoderCount--;
   } else {
-    encoderCount_Left++;
+    leftEncoderCount++;
   }
 }
 
+// Encoder ISR for right encoder
 void rightEncoderISR() {
-  if (digitalRead(encoderPinB_Right) == digitalRead(encoderPinA_Right)) {
-    encoderCount_Right++;
+  // Increment or decrement encoder count based on direction
+  if (digitalRead(rightEncoderPinB) == digitalRead(rightEncoderPinA)) {
+    rightEncoderCount++;
   } else {
-    encoderCount_Right--;
+    rightEncoderCount--;
   }
 }
 
-float calculateDistance(long countLeft, long countRight) {
-  // Calculate the average number of revolutions of the left and right wheels
-  float avgRotations = ((float)countLeft + (float)countRight) / 2.0 / encoderResolution;
-
-  // Calculated Distance
-  return avgRotations * wheelCircumference;
-}
-
-void displaySpeedAndDirection() {
-// current time
-  unsigned long currentTime = millis();
-  // measuring interval
-  unsigned long timeInterval = currentTime - lastTime;
-
-  if (timeInterval >= 100) { // Measured every 100 ms
-    // Calculate the number of revolutions for each wheel
-    float rotationsLeft = (encoderCount_Left - lastEncoderCount_Left) / encoderResolution;
-    float rotationsRight = (encoderCount_Right - lastEncoderCount_Right) / encoderResolution;
-
-    // Calculation of average rotation speed (revolutions/second)
-    float avgRotationsPerSec = ((rotationsLeft + rotationsRight) / 2.0) / (timeInterval / 1000.0);
-
-    // Conversion to speed (m/s)
-    float speed = avgRotationsPerSec * wheelCircumference;
-
-    // Direction
-    char direction = (encoderCount_Left - lastEncoderCount_Left) >= 0 ? '+' : '-';
-
-    // Display speed and direction
-    Serial.print("Speed: ");
-    Serial.print(speed);
-    Serial.print(" m/s, Direction: ");
-    Serial.println(direction);
-
-    // Update the last value
-    lastEncoderCount_Left = encoderCount_Left;
-    lastEncoderCount_Right = encoderCount_Right;
-    lastTime = currentTime;
+// Function to calculate direction
+char calculateDirection() {
+  if (leftEncoderCount > rightEncoderCount) {
+    return '+';
+  } else if (leftEncoderCount < rightEncoderCount) {
+    return '-';
   }
+  return '=';
 }
+// Function to calculate speed
+float calculateSpeed() {
+  // Calculate the distance each wheel has moved
+  float leftDistance = (leftEncoderCount / (float)encoderCountsPerRevolution) * PI * wheelDiameter;
+  float rightDistance = (rightEncoderCount / (float)encoderCountsPerRevolution) * PI * wheelDiameter;
 
-void moveRobotToDistance(float distance) {
-  // Reset encoder count
-  encoderCount_Left = 0;
-  encoderCount_Right = 0;
+  // Calculate the average distance
+  float averageDistance = (leftDistance + rightDistance) / 2.0;
 
-  // Setting the motor direction
-  int motorDirection = distance >= 0 ? 1 : -1;
+  // Calculate speed (distance/time)
+  float speed = averageDistance / 0.1; // Assuming loop runs every 100ms
 
-  // Setting the target encoder count
-  long targetCount = abs(distance) / wheelCircumference * encoderResolution;
-
-  // Control motor movement
-  while (abs(encoderCount_Left) < targetCount && abs(encoderCount_Right) < targetCount) {
-    int speed = min(maxMotorSpeed, motorSpeedStep * (abs(encoderCount_Left) / targetCount));
-    analogWrite(motorPin_Left, speed * motorDirection);
-    analogWrite(motorPin_Right, speed * motorDirection);
-    delay(10); // delay
-  }
-
-  // motor stop
-  analogWrite(motorPin_Left, motorStop);
-  analogWrite(motorPin_Right, motorStop);
+  return speed;
 }
