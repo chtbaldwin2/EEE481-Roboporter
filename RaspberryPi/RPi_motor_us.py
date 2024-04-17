@@ -10,9 +10,36 @@ def serial_reader():
     ultraArd.reset_input_buffer()
     while True:
         decode = ultraArd.readline().decode('utf-8').rstrip()
-        if decode.startswith('%'):
-            line = decode[1:]
-            print(line)
+        
+        if decode.startswith('%0'):
+            sensor0 = decode[2:]
+            print(sensor0)
+            
+            if sensor0 < 40:
+                motorArd.write(b"stopForward\n");
+            
+        elif decode.startswith('%1'):
+            sensor1 = decode[2:]
+            print(sensor1)
+            
+            if sensor1 < 40:
+                motorArd.write(b"stopLeft\n");
+            
+        elif decode.startswith('%2'):
+            sensor2 = decode[2:]
+            print(sensor2)
+            
+            if sensor2 < 40:
+                motorArd.write(b"stopRight\n");
+            
+        elif decode.startswith('%3'):
+            sensor3 = decode[2:]
+            print(sensor3)
+            
+            if sensor3 < 40:
+                motorArd.write(b"stopBack\n");
+            
+            
 
 def gamepad_listener():
     gamepad = InputDevice('/dev/input/event2')
