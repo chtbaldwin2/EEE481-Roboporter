@@ -25,6 +25,9 @@ void setup() {
   esc_L.attach(escPin_L);
   esc_R.attach(escPin_R);
 
+  esc_L.write(90);
+  esc_R.write(90);
+
 }
 
 void loop() {
@@ -64,10 +67,9 @@ void loop() {
     speed_L_new = constrain((speed_L_prev + speed_L), 20, 160);
     speed_R_new = constrain((speed_R_prev + speed_R), 20, 160);
 
-    Serial.print("New L Speed: ");
+    /*Serial.print("$");
     Serial.print(speed_L_new);
-    Serial.print(", New R Speed: ");
-    Serial.println(speed_R_new);
+    Serial.println(speed_R_new);*/
 
     esc_L.write(speed_L_new);
     esc_R.write(speed_R_new);
@@ -81,4 +83,3 @@ void loop() {
   }
 
 }
-
