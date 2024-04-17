@@ -64,8 +64,32 @@ void loop() {
 
     }
 
-    speed_L_new = constrain((speed_L_prev + speed_L), 20, 160);
-    speed_R_new = constrain((speed_R_prev + speed_R), 20, 160);
+    if (data == "stopForward") {
+
+      speed_L_new = constrain((speed_L_prev + speed_L), 20, 90);
+      speed_R_new = constrain((speed_R_prev + speed_R), 20, 90);
+      
+    } else if (data == "stopBack") {
+
+      speed_L_new = constrain((speed_L_prev + speed_L), 90, 160);
+      speed_R_new = constrain((speed_R_prev + speed_R), 90, 160);
+      
+    } else if (data == "stopLeft") {
+
+      speed_L_new = constrain((speed_L_prev + speed_L), 90, 160);
+      speed_R_new = constrain((speed_R_prev + speed_R), 20, 160);
+      
+    } else if (data == "stopRight") {
+      
+      speed_L_new = constrain((speed_L_prev + speed_L), 20, 160);
+      speed_R_new = constrain((speed_R_prev + speed_R), 90, 160);
+        
+    } else {
+      
+      speed_L_new = constrain((speed_L_prev + speed_L), 20, 160);
+      speed_R_new = constrain((speed_R_prev + speed_R), 20, 160);
+      
+    }
 
     /*Serial.print("$");
     Serial.print(speed_L_new);
