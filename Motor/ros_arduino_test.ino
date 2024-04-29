@@ -1,31 +1,35 @@
+#include <Servo.h>
 #include <ros.h>
 #include <geometry_msgs/Twist.h>
 
 ros::NodeHandle nh;
 
-int motor1Pin = 5; // Arduino to first motor 
-int motor2Pin = 6; // Arduino to second motor
+Servo motor1;  // creat servo motor 1
+Servo motor2;  // creat servo motor 2
 
+// The servo motor receives angular values, but assume that it received linear velocity (-1.0 to 1.0) maps directly to the angle (0 to 180)
 void cmdVelCallback(const geometry_msgs::Twist& cmd_msg) {
-  int motor1Speed = cmd_msg.linear.x * 255; // change the speed to pwm（0-255）
-  int motor2Speed = cmd_msg.angular.z * 255; // change the speed to pwm（0-255）
+    int angle1 = map(cmd_msg.linear.x * 100, -100, 100, 0, 180);  // change line velocity to angle
+    int angle2 = map(cmd_msg.angular.z * 100, -100, 100, 0, 180); // change angular velocity to angle
 
-  analogWrite(motor1Pin, abs(motor1Speed));
-  analogWrite(motor2Pin, abs(motor2Speed));
+    motor1.write(angle1);  // set motor 1 angle 
+    motor2.write(angle2);  // set motor 2 angle 
 }
 
-ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", cmdVelCallback); set the feedback topic to ros
+ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", cmdVelCallback);
+
 
 void setup() {
-  pinMode(motor1Pin, OUTPUT);
-  pinMode(motor2Pin, OUTPUT);
-  nh.initNode();
-  nh.subscribe(sub);
+    nh.initNode();  // Initializing node
+    nh.subscribe(sub);  // Subscribe to cmd_vel topic
+
+    motor1.attach(5);  // set motor 1 to pin 5
+    motor2.attach(6); // set motor 2 to pin 6
 }
 
 void loop() {
-  nh.spinOnce();
-  delay(10);
+    nh.spinOnce();  // Processing ROS callback
+    delay(10);
 }
 
 
