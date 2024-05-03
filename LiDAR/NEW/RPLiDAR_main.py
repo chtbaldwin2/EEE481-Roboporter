@@ -36,9 +36,8 @@ def plotting_lidar(scans_generator, pols, fig, ax, axbackground):
 		thetas, dists = convert_scan_into_plot(scan)
 		pols.set_data(thetas, dists)
 
-		#pols.set_markerfacecolor('r')
 		fig.canvas.restore_region(axbackground)
-		ax.draw_artist(pols)
+		ax.draw_artist(pols) 				#pols.set_markerfacecolor('r')
 		fig.canvas.blit(ax.bbox)
 		fig.canvas.flush_events() #flush for next plot
 		
