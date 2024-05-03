@@ -37,9 +37,15 @@ def plotting_lidar(scans_generator, pols, fig, ax, axbackground):
 		pols.set_data(thetas, dists)
 
 		fig.canvas.restore_region(axbackground)
-		ax.draw_artist(pols) 				#pols.set_markerfacecolor('r')
+		ax.draw_artist(pols)
 		fig.canvas.blit(ax.bbox)
 		fig.canvas.flush_events() #flush for next plot
+
+		#pols.set_markerfacecolor('r')
+		
+		#ax.draw_artist(pols2) #plot pols2 red for USSensor low values
+		#fig.canvas.blit(ax.bbox)
+		#fig.canvas.flush_events()
 		
 	except RPLidarException:
 		plt.close('all')
@@ -66,8 +72,8 @@ if __name__ == '__main__':
 	ax.set_thetagrids(np.linspace(0.0, 360, 9))
 		
 	#display plot points
-	pols, = ax.plot([], linestyle = '', marker = 'o', markerfacecolor = 'g', markeredgecolor = 'w', markeredgewidth = 1.0, markersize = 3.0, alpha = 1)
-	line1, = ax.plot([], color = 'w',linewidth = 4.0)
+	pols, = ax.plot([], linestyle = '', marker = 'o', markerfacecolor = 'g', markeredgecolor = 'w', markeredgewidth = 1.0, markersize = 3.0, alpha = 1) #green point plot
+	#pols2, = ax.plot([], linestyle = '', marker = 'o', markerfacecolor = 'r', markeredgecolor = 'w', markeredgewidth = 1.0, markersize = 3.0, alpha = 1) #red point plot
 
 	#plotting
 	fig.canvas.draw()
