@@ -2,7 +2,7 @@ from rplidar import RPLidar, MAX_MOTOR_PWM, RPLidarException
 from matplotlib import pyplot as plt
 import numpy as np
 
-
+# convert scans for plotting, data store
 def convert_scan_into_plot(scan):
 	thetas = []
 	dists = []
@@ -14,7 +14,7 @@ def convert_scan_into_plot(scan):
 	
 	return thetas, dists
 	
-
+# converts angles to radians
 def angle_conversion(angle):
 	if angle<90:
 		return angle*(np.pi/180)
@@ -25,12 +25,14 @@ def angle_conversion(angle):
 	else:
 		return -(360-angle)*(np.pi/180)
 
-
+# main code. starts the lidar scans, and plots the graph. Uses angle_conversion and conver_scan_into_plot
 def plotting_lidar(scans_generator, pols, fig, ax, axbackground):
 	try:
+		# lidar to start scanning
 		scan = next(scans_generator)
 		print(len(scan))
-		
+
+		# collected lidar data to be plotted
 		thetas, dists = convert_scan_into_plot(scan)
 		pols.set_data(thetas, dists)
 		fig.canvas.restore_region(axbackground)
@@ -45,7 +47,7 @@ def plotting_lidar(scans_generator, pols, fig, ax, axbackground):
 	return thetas, dists
 
 
-
+# initialisation for the code.
 if __name__ == '__main__':
 	#display setup
 	fig = plt.figure(facecolor='k')
