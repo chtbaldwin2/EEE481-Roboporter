@@ -35,6 +35,8 @@ def plotting_lidar(scans_generator, pols, fig, ax, axbackground):
 		# collected lidar data to be plotted
 		thetas, dists = convert_scan_into_plot(scan)
 		pols.set_data(thetas, dists)
+
+		#pols.set_markerfacecolor('r')
 		fig.canvas.restore_region(axbackground)
 		ax.draw_artist(pols)
 		fig.canvas.blit(ax.bbox)
@@ -65,7 +67,7 @@ if __name__ == '__main__':
 	ax.set_thetagrids(np.linspace(0.0, 360, 9))
 		
 	#display plot points
-	pols, = ax.plot([], linestyle = '', marker = 'o', markerfacecolor = 'r', markeredgecolor = 'w', markeredgewidth = 1.0, markersize = 3.0, alpha = 1)
+	pols, = ax.plot([], linestyle = '', marker = 'o', markerfacecolor = 'g', markeredgecolor = 'w', markeredgewidth = 1.0, markersize = 3.0, alpha = 1)
 	line1, = ax.plot([], color = 'w',linewidth = 4.0)
 
 	#plotting
